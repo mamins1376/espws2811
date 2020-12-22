@@ -7,5 +7,8 @@ all:
 $(PIO_TARGETS):
 	$(PIO) run --target $@
 
+monitor:
+	$(PIO) device monitor -b 74880
+
 update:
 	$(PIO) update

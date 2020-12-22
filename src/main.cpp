@@ -1,14 +1,30 @@
-#include "Arduino.h"
+#include <Arduino.h>
+#include <ESPAsyncWiFiManager.h>
+#include <ESPAsyncWebServer.h>
 
-void setup()
+DNSServer dns;
+AsyncWebServer http(80);
+
+void setup(void)
 {
-	pinMode(LED_BUILTIN, OUTPUT);
+	Serial.begin(74880);
+
+	AsyncWiFiManager manager(&http, &dns);
+	while (!manager.autoConnect());
+
+	http.on("/", HTTP_GET, [](AsyncWebServerRequest *req) {
+		req->send(200, "text/plain", "Welcome.");
+	});
+
+	http.onNotFound([](AsyncWebServerRequest *req) {
+		req->send(404, "text/plain", "Ohh, something's missing?!");
+	});
+
+	http.begin();
+	Serial.print("listenting on http://");
+	Serial.println(WiFi.localIP());
 }
 
-void loop()
+void loop(void)
 {
-	static bool state = false;
-	state = !state;
-	digitalWrite(LED_BUILTIN, state ? HIGH : LOW);
-	delay(1000);
 }
