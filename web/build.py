@@ -22,7 +22,13 @@ const uint8_t {ident}_gzip[] PROGMEM = {{
 def get_minify(retry=True):
     try:
         import htmlmin
-        return htmlmin.minify
+        def minify(data):
+            return htmlmin.minify(
+                data.decode("utf-8"),
+                remove_comments=True,
+                remove_all_empty_space=True
+            ).encode("utf-8")
+        return minify
     except ImportError:
         if not retry:
             raise
@@ -55,8 +61,7 @@ def html_to_c(name):
     with open(html, "rb") as f:
         data = f.read()
 
-    data = get_minify()(data.decode("utf-8"))
-    data = compress(data.encode("utf-8"))
+    data = compress(get_minify()(data))
 
     vars = {
         "name": name,
