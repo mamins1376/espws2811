@@ -3,3 +3,5 @@
 .gcc-flags.json
 .ccls
 README
+web/*.html.h
+web/*.html.c
