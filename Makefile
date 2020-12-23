@@ -8,7 +8,8 @@ $(PIO_TARGETS)::
 	$(PIO) run --target $@
 
 clean::
-	rm web/*.{h,c}
+	rm include/*.html.h
+	rm src/*.html.h
 
 monitor:
 	$(PIO) device monitor -b 74880

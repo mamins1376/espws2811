@@ -1,5 +1,6 @@
-import os.path
-import glob
+from os import path
+from glob import glob
+from gzip import compress
 
 Import("env")
 
@@ -35,23 +36,27 @@ def hex_lines(data):
         yield ", ".join(f"0x{b:02X}" for b in data[i:min(j, l)])
         i, j = j, j + w
 
-def html_to_c(path):
-    if os.path.exists(path + ".c"):
-        if os.path.getmtime(path + ".c") > os.path.getmtime(path):
-            return
+def is_fine(file, mtime):
+    if not path.exists(file):
+        return False
+    return path.getmtime(file) > mtime
 
-    name = os.path.basename(path)
+def html_to_c(name):
+    html = f"web/{name}"
+    head = f"include/{name}.h"
+    code = f"src/{name}.c"
+
+    mtime = path.getmtime(html)
+    if is_fine(head, mtime) and is_fine(code, mtime):
+        return
 
     print("Generating c code for web asset:", name)
 
-    with open(path, "rb") as f:
+    with open(html, "rb") as f:
         data = f.read()
 
     data = get_minify()(data.decode("utf-8"))
-
-    if "gzip" not in locals().keys():
-        import gzip
-    data = gzip.compress(data.encode("utf-8"))
+    data = compress(data.encode("utf-8"))
 
     vars = {
         "name": name,
@@ -60,11 +65,11 @@ def html_to_c(path):
         "length": len(data)
     }
 
-    with open(path + ".h", "w") as f:
+    with open(head, "w") as f:
         f.write(html_h_template.format(**vars))
 
-    with open(path + ".c", "w") as f:
+    with open(code, "w") as f:
         f.write(html_c_template.format(**vars))
 
-for path in glob.glob("web/*.html"):
-    html_to_c(os.path.abspath(path))
+for relpath in glob("web/*.html"):
+    html_to_c(path.basename(relpath))
