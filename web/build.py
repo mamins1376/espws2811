@@ -32,7 +32,7 @@ def get_minify(retry=True):
 def hex_lines(data):
     w = 13
     i, j, l = 0, w, len(data)
-    while j < l:
+    while i < l:
         yield ", ".join(f"0x{b:02X}" for b in data[i:min(j, l)])
         i, j = j, j + w
 
