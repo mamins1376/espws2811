@@ -5,3 +5,6 @@
 README
 include/*.html.h
 src/*.html.c
+web/node_modules
+web/bundle.js
+web/package-lock.json

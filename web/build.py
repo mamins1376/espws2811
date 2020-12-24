@@ -1,5 +1,5 @@
 from os import path
-from glob import glob
+from glob import iglob
 from gzip import compress
 
 Import("env")
@@ -19,55 +19,65 @@ const uint8_t {ident}_gzip[] PROGMEM = {{
 }};
 """
 
-def get_minify(retry=True):
-    try:
-        import htmlmin
-        def minify(data):
-            return htmlmin.minify(
-                data.decode("utf-8"),
-                remove_comments=True,
-                remove_all_empty_space=True
-            ).encode("utf-8")
-        return minify
-    except ImportError:
-        if not retry:
-            raise
-        env.Execute("$PYTHONEXE -m pip install htmlmin")
-        return get_minify(False)
+def make_change_checker(*ps):
+    def f(n):
+        mtime = path.getmtime(n)
+        for p in ps:
+            if not path.exists(p):
+                return False
+            return path.getmtime(p) > mtime
+    return f
 
-def hex_lines(data):
+def call_web(*args):
+    import subprocess
+    try:
+        subprocess.check_call(args, cwd="web")
+    except subprocess.CalledProcessError as e:
+        import sys
+        sys.exit(e.returncode)
+
+def read(f):
+    with open(f, encoding="utf8") as f:
+        content = f.read()
+    return content[:-1] if content and content[-1] == "\n" else content
+
+def bin2hex(data):
     w = 13
     i, j, l = 0, w, len(data)
     while i < l:
         yield ", ".join(f"0x{b:02X}" for b in data[i:min(j, l)])
         i, j = j, j + w
 
-def is_fine(file, mtime):
-    if not path.exists(file):
-        return False
-    return path.getmtime(file) > mtime
-
-def html_to_c(name):
-    html = f"web/{name}"
+def build_index_html_c():
+    name = "index.html"
     head = f"include/{name}.h"
     code = f"src/{name}.c"
+    html = "web/index.html"
+    css  = "web/style.css"
+    js   = "web/bundle.js"
 
-    mtime = path.getmtime(html)
-    if is_fine(head, mtime) and is_fine(code, mtime):
+    css_changed = not all(map(make_change_checker(css), iglob("web/css/*.css")))
+    js_changed  = not all(map(make_change_checker(js), iglob("web/js/*.js")))
+    if css_changed or js_changed:
+        if not path.isdir("web/node_modules"):
+            call_web("npm", "install")
+        call_web("node", ".")
+
+    if all(map(make_change_checker(head, code), iglob("web/*"))):
         return
 
-    print("Generating c code for web asset:", name)
-
-    with open(html, "rb") as f:
-        data = f.read()
-
-    data = compress(get_minify()(data))
+    print("Generating c code for web asset:", name, end="... ")
+    html = read(html)
+    html = html.replace("%%STYLE%%", read(css))
+    html = html.replace("%%SCRIPT%%", read(js))
+    html = compress(html.encode("utf8"))
+    print(len(html), "bytes (gzipped)")
 
     vars = {
         "name": name,
         "ident": name.replace(".", "_"),
-        "table": ",\n  ".join(hex_lines(data)),
-        "length": len(data)
+        "table": ",\n  ".join(bin2hex(html)),
+        "length": len(html)
     }
 
     with open(head, "w") as f:
@@ -76,5 +86,4 @@ def html_to_c(name):
     with open(code, "w") as f:
         f.write(html_c_template.format(**vars))
 
-for relpath in glob("web/*.html"):
-    html_to_c(path.basename(relpath))
+build_index_html_c()

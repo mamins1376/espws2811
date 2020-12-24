@@ -1,0 +1,9 @@
+{
+  "name": "espws2811-web",
+  "main": "build.js",
+  "license": "MIT",
+  "devDependencies": {
+    "preact": "^10.5.7",
+    "terser": "^5.5.1"
+  }
+}
