@@ -16,3 +16,6 @@ monitor:
 
 update:
 	$(PIO) update
+
+nodemon:
+	nodemon -w web -e js,jsx,py -x python3 web/build.py

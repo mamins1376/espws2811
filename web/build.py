@@ -2,8 +2,6 @@ from os import path
 from glob import iglob
 from gzip import compress
 
-Import("env")
-
 html_h_template = """\
 #include <sys/pgmspace.h>
 #ifndef {ident}_gzip_len
@@ -53,11 +51,11 @@ def build_index_html_c():
     head = f"include/{name}.h"
     code = f"src/{name}.c"
     html = "web/index.html"
-    css  = "web/style.css"
+    css  = "/dev/null"
     js   = "web/bundle.js"
 
-    css_changed = not all(map(make_change_checker(css), iglob("web/css/*.css")))
-    js_changed  = not all(map(make_change_checker(js), iglob("web/js/*.js")))
+    css_changed = not True # make_change_checker(css)("web/style.css")
+    js_changed  = not make_change_checker(js)("web/index.jsx")
     if css_changed or js_changed:
         if not path.isdir("web/node_modules"):
             call_web("npm", "install")
@@ -70,7 +68,12 @@ def build_index_html_c():
     html = read(html)
     html = html.replace("%%STYLE%%", read(css))
     html = html.replace("%%SCRIPT%%", read(js))
-    html = compress(html.encode("utf8"))
+    html = html.encode("utf8")
+
+    with open("app.html", "wb") as f:
+        f.write(html)
+
+    html = compress(html)
     print(len(html), "bytes (gzipped)")
 
     vars = {

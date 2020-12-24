@@ -1,18 +1,18 @@
 const { readFileSync, writeFileSync } = require("fs");
-const { minify } = require("terser");
+const { transformSync } = require("@babel/core");
 
-async function main() {
-  const code = [ "node_modules/preact/dist/preact.min.js", "js/index.js" ]
-    .reduce((m, f) => (m[f] = readFileSync(f, "utf8"), m), {});
-  const options = {
-    toplevel: true
-  };
-  const minified = await minify(code, options);
-  writeFileSync("bundle.js", minified.code);
-  console.log("Minified all javascript codes");
-}
+let preact = readFileSync("node_modules/preact/dist/preact.min.js", "utf8");
+preact = preact.substr(0, preact.lastIndexOf(";") + 1);
 
-main().catch(err => {
-  console.log("An error occured:", err);
-  process.exitCode = 1;
-});
+const app = readFileSync("index.jsx", "utf8");
+const options = {
+  presets: ["minify"],
+  plugins: [
+    ["@babel/plugin-proposal-class-properties", { loose: true }],
+    ["@babel/plugin-transform-react-jsx", { pragma: "h", pragmaFrag: "Fragment" }]
+  ]
+};
+const transformed = transformSync(app, options);
+const result = preact + transformed.code;
+writeFileSync("bundle.js", result);
+console.log("Minified all javascript codes");
