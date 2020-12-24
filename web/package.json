@@ -6,7 +6,7 @@
     "@babel/core": "^7.12.10",
     "@babel/plugin-proposal-class-properties": "^7.12.1",
     "@babel/plugin-transform-react-jsx": "^7.12.12",
-    "babel-preset-minify": "^0.5.1",
-    "preact": "^10.5.7"
+    "preact": "^10.5.7",
+    "terser": "^5.5.1"
   }
 }

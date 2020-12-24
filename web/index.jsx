@@ -2,22 +2,29 @@ const { h, Component, render } = preact;
 
 let domain = window.location.href;
 domain = domain.startsWith("file://") ? "http://192.168.1.9" : domain.match(/^.*\//);
-console.log(domain);
+
+Promise.prototype.drive = function() { this.catch(console.error.bind(console)) };
 
 class App extends Component {
   state = {
-    happy: false
+    numLeds: null
   };
 
   componentDidMount() {
-    setTimeout(() => {
-      this.setState({ happy: true });
-    }, 1000);
+    this.checkEsp().drive();
+  }
+
+  async checkEsp() {
+    const res = await fetch(`${domain}/ws2811`);
+    const text = await res.text();
+    const numLeds = parseInt(text);
+    if (!isNaN(numLeds))
+      this.setState({ numLeds });
   }
 
   render() {
-    const mood = this.state.happy ? "good" : "bad";
-    return <p>Have a supposedly {mood} day!</p>;
+    const is_online = this.state.numLeds !== null;
+    return <p>System is {is_online ? "Online" : "Offline"}</p>;
   }
 }
 
