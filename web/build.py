@@ -75,7 +75,7 @@ def build_index_html_c():
     if css_changed or js_changed:
         if not path.isdir("web/node_modules"):
             call_web("npm", "install")
-        call_web("node", ".")
+        call_web("npx", "rollup", "-c")
 
     if all(map(make_change_checker(head, code), iglob("web/*"))):
         return

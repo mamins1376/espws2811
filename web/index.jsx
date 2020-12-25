@@ -1,7 +1,4 @@
-const module = undefined;
-const self = {};
-"PREACT";
-const { h, Component, render } = self.preact;
+import { h, Component, render } from "preact/src/index.js";
 
 const LOGLEVEL_DISABLED = -1;
 const LOGLEVEL_FATAL = 0;
