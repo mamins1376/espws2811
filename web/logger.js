@@ -31,3 +31,7 @@ export function debug(...a) {
   if (LOGLEVEL >= LOGLEVEL_DEBUG)
   console.log("[DEBUG]:", ...a);
 }
+
+Promise.prototype.drive = function() {
+  this.catch(error);
+};

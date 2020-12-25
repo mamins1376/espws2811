@@ -1,13 +1,12 @@
 import { h, Component, render } from "preact";
 import * as logger from "./logger";
 
-Promise.prototype.drive = function() {
-  this.catch(error);
-};
+const MESSAGE_TYPE_INIT = "I";
 
 class App extends Component {
   state = {
-    is_online: false
+    isOnline: false,
+    leds: [],
   };
 
   componentDidMount() {
@@ -23,25 +22,50 @@ class App extends Component {
     ws.onerror = (...a) => this.wsOnError(...a).drive();
   }
 
-  async wsOnOpen() {
-    logger.info("ws connected");
+  async wsOnOpen(event) {
+    logger.info("ws connected:", event);
   }
 
-  async wsOnClose() {
-    logger.info("ws closed");
+  async wsOnClose(event) {
+    logger.info("ws closed", event);
   }
 
-  async wsOnMessage() {
-    logger.info("ws message");
+  async wsOnMessage({ data }) {
+    logger.info("ws message", data);
+    if (!data)
+      return;
+    const payload = data.substr(1);
+    switch (data[0]) {
+      case MESSAGE_TYPE_INIT:
+        const numLeds = parseInt(payload);
+        if (!isNaN(numLeds))
+          this.setState({
+            leds: new Array(numLeds).fill("000000"),
+            isOnline: true
+          });
+        break;
+    }
   }
 
-  async wsOnError() {
-    logger.error("ws error: ");
+  async wsOnError(event) {
+    logger.error("ws error: ", event);
   }
 
-  render() {
-    return <p>System is {this.state.is_online ? "Online" : "Offline"}</p>;
+  render(_props, { isOnline, leds }) {
+    logger.debug("render called:", a);
+    return <div>
+      <p>System is O{isOnline ? "n" : "ff"}line</p>
+      <div class="leds">
+        {leds.map(color => (
+          <LEDView color={color} />
+        ))}
+      </div>
+    </div>;
   }
 }
+
+const LEDView = ({ color }) => (
+  <span style={"background:"+color} />
+);
 
 render(<App />, document.body);
