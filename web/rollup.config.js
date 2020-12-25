@@ -2,7 +2,26 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import sucrase from "@rollup/plugin-sucrase";
 import { terser } from "rollup-plugin-terser";
 
-export default {
+const terserPlugin = terser({
+  compress: {
+    passes: 3,
+    unsafe: true,
+    unsafe_arrows: true,
+    unsafe_methods: true,
+    unsafe_proto: true
+  },
+  mangle: {
+    toplevel: true,
+    properties: true
+  },
+  format: {
+    semicolons: false
+  },
+  ecma: 2015,
+  toplevel: true
+})
+
+const config = {
   input: "index.jsx",
   output: {
     file: "bundle.js",
@@ -19,23 +38,10 @@ export default {
       jsxPragma: "h",
       jsxFragmentPragma: "Fragment"
     }),
-    terser({
-      compress: {
-        passes: 3,
-        unsafe: true,
-        unsafe_arrows: true,
-        unsafe_methods: true,
-        unsafe_proto: true
-      },
-      mangle: {
-        toplevel: true,
-        properties: true
-      },
-      format: {
-        semicolons: false
-      },
-      ecma: 2015,
-      toplevel: true
-    })
   ]
 }
+
+if (!process.env.NO_MINIFY)
+  config.plugins.push(terserPlugin);
+
+export default config;

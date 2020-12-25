@@ -71,7 +71,10 @@ def build_index_html_c():
     js   = "web/bundle.js"
 
     css_changed = not True # make_change_checker(css)("web/style.css")
-    js_changed  = not make_change_checker(js)("web/index.jsx")
+    js_changed  = not all(map(make_change_checker(js), (
+        "web/index.jsx",
+        "web/logger.js",
+    )))
     if css_changed or js_changed:
         if not path.isdir("web/node_modules"):
             call_web("npm", "install")
