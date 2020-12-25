@@ -1,6 +1,7 @@
 import "./style.scss";
 
 import { h, Component, render } from "preact";
+import { HexColorPicker } from "react-colorful";
 import * as logger from "./logger";
 
 const MESSAGE_TYPE_INIT = "I";
@@ -9,11 +10,12 @@ class App extends Component {
   state = {
     isOnline: false,
     leds: [],
+    selectedColor: null
   };
 
   componentDidMount() {
     let url = location.href.substr(7);
-    if (url[0] == "/")
+    if (url[0] == "/" || url.startsWith("[::1]"))
       url = "192.168.1.9"
     url += "/ws"
     url = url.replace("//", "/")
@@ -53,12 +55,18 @@ class App extends Component {
     logger.error("ws error: ", event);
   }
 
-  render = (_props, { isOnline, leds }) =>
+  selectColor(event) {
+    console.log(event);
+    this.setState({ selectedColor: "444" });
+  }
+
+  render = (_props, { isOnline, leds, selectedColor }) =>
     <div>
       <p>System is O{isOnline ? "n" : "ff"}line</p>
       <div className="leds">{
         leds.map(c => <div style={"background:#"+c} />)
       }</div>
+      <HexColorPicker color={selectedColor} onChange={this.selectColor} />
     </div>;
 }
 

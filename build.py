@@ -44,19 +44,19 @@ def bin2hex(data):
 
 def build_index_html_c():
     name = "index.html"
-    html = f"dist/{name}"
+    html = f"dist/embed.html"
     head = f"include/{name}.h"
     code = f"src/{name}.c"
 
-    check = chain(iglob("web/*"), iter(("build.py", "rollup.config.js")))
-    if all(map(make_change_checker(head, code), check)):
+    if not path.isdir("dist"):
+        if not path.isdir("node_modules"):
+            call_exec("npm", "install", "--production")
+        call_exec("npx", "rollup", "--config")
+
+    if all(map(make_change_checker(head, code), (html, "build.py"))):
         return
 
     print("Generating c code for web asset:", name, end="... ")
-
-    if not path.isdir("node_modules"):
-        call_exec("npm", "install", "--production")
-    call_exec("npx", "rollup", "--config")
 
     with open(html, "rb") as f:
         html = f.read()

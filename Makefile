@@ -17,6 +17,8 @@ monitor:
 update:
 	$(PIO) update
 
-nodemon:
-	nodemon -w web -w rollup.config.js -w build.py \
-		-e js,jsx,scss,py -x python3 build.py
+embed:
+	nodemon -w dist/embed.html -x python3 build.py
+
+serve:
+	python -m http.server -d dist -b ::1 3000

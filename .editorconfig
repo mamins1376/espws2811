@@ -1,19 +1,17 @@
 root = true
 [*]
+charset = utf-8
 end_of_line = lf
 insert_final_newline = false
-charset = utf-8
+trim_trailing_whitespace = true
 
 [*.py]
 indent_style = space
 indent_size = 4
 
-[*.c]
+[*.c,Makefile]
 indent_style = tab
 
-[Makefile]
-indent_style = tab
-
-[web/**/*.{{,s}css,js{,x}}]
+[*.{{,s}css,js{,x}}]
 indent_style = space
 indent_size = 2
