@@ -13,6 +13,7 @@
     "react-colorful": "^4.4.4",
     "rollup": "^2.35.1",
     "rollup-plugin-scss": "^2.6.1",
+    "rollup-plugin-sourcemaps": "^0.6.3",
     "rollup-plugin-terser": "^7.0.2"
   },
   "scripts": {

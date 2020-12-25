@@ -1,5 +1,6 @@
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import alias from "@rollup/plugin-alias";
+import sourcemaps from "rollup-plugin-sourcemaps";
 import scss from "rollup-plugin-scss";
 import sucrase from "@rollup/plugin-sucrase";
 import { terser } from "rollup-plugin-terser";
@@ -36,6 +37,7 @@ export default {
       { find: "react", replacement: "preact/compat" },
       { find: "react-dom", replacement: "preact/compat" }
     ]}),
+    sourcemaps(),
     scss({
       outputStyle: "compressed",
       output: c => { css = c.slice(0, c.length - (c[-1]==="\n")) }
