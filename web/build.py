@@ -34,27 +34,6 @@ def call_web(*args):
         import sys
         sys.exit(e.returncode)
 
-def read(f):
-    with open(f, encoding="utf8") as f:
-        content = f.read()
-    return content[:-1] if content and content[-1] == "\n" else content
-
-def minify(string):
-    try:
-        import htmlmin
-    except ImportError:
-        cmd = "$PYTHONEXE -m pip install htmlmin"
-        imp = globals().get("Import")
-        if imp:
-            imp("env")
-            env.Execute(cmd)
-        else:
-            import sys
-            call_web(*cmd.replace("$PYTHONEXE", sys.executable).split(" "))
-    import htmlmin
-    opts = "remove_comments", "remove_all_empty_space"
-    return htmlmin.minify(string, **{opt: True for opt in opts})
-
 def bin2hex(data):
     w = 13
     i, j, l = 0, w, len(data)
@@ -66,31 +45,19 @@ def build_index_html_c():
     name = "index.html"
     head = f"include/{name}.h"
     code = f"src/{name}.c"
-    html = "web/index.html"
-    css  = "/dev/null"
-    js   = "web/bundle.js"
-
-    css_changed = not True # make_change_checker(css)("web/style.css")
-    js_changed  = not all(map(make_change_checker(js), (
-        "web/index.jsx",
-        "web/logger.js",
-    )))
-    if css_changed or js_changed:
-        if not path.isdir("web/node_modules"):
-            call_web("npm", "install")
-        call_web("npx", "rollup", "-c")
+    html = "web/dist/{name}"
 
     if all(map(make_change_checker(head, code), iglob("web/*"))):
         return
 
     print("Generating c code for web asset:", name, end="... ")
-    html = read(html)
-    html = html.replace("%%STYLE%%", read(css))
-    html = html.replace("%%SCRIPT%%", read(js))
-    html = minify(html).encode("utf8")
 
-    with open("app.html", "wb") as f:
-        f.write(html)
+    if not path.isdir("web/node_modules"):
+        call_web("npm", "install")
+    call_web("npm", "start")
+
+    with open(html, encoding="utf8") as f:
+        html = f.read()
 
     html = compress(html)
     print(len(html), "bytes (gzipped)")
