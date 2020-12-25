@@ -13,16 +13,20 @@ const transformed = transformSync(app, {
   ]
 });
 
-minify(transformed.code, {
+minify(preact + transformed.code, {
   compress: {
     unsafe: true,
     unsafe_arrows: true,
     unsafe_methods: true,
     unsafe_proto: true
   },
+  mangle: {
+    toplevel: true,
+    properties: true
+  },
   ecma: 2015,
-  module: true
+  toplevel: true
 }).then(minified => {
-  writeFileSync("bundle.js", preact + minified.code);
+  writeFileSync("bundle.js", minified.code);
   console.log("Minified all javascript codes");
 }).catch(e => { throw e; });
