@@ -3,6 +3,11 @@ import sucrase from "@rollup/plugin-sucrase";
 import { terser } from "rollup-plugin-terser";
 import html from "@rollup/plugin-html";
 import { minify } from "html-minifier";
+import scss from "rollup-plugin-scss";
+
+// hack to inject css to html
+// scss calls output which sets this
+var css;
 
 export default {
   input: "src/index.jsx",
@@ -11,8 +16,12 @@ export default {
     format: "iife"
   },
   plugins: [
+    scss({
+      outputStyle: "compressed",
+      output: c => { css = c.slice(0, c.length - (c[-1]==="\n")) }
+    }),
     nodeResolve({
-      extensions: [".js", ".jsx"]
+      extensions: [".js", ".jsx", ".scss"]
     }),
     sucrase({
       exclude: ["node_modules/**"],
@@ -41,7 +50,7 @@ export default {
     }),
     html({
       title: "ESPWS2811",
-      template: ({ files: { css, js }, title }) => minify(`
+      template: ({ files: { js }, title }) => minify(`
         <!DOCTYPE html>
         <html>
           <head>
@@ -49,10 +58,10 @@ export default {
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>${title}</title>
             <link rel="shortcut icon" href="#">
-            ${(css || []).map(f => `<style>${f.code}</style>`)}
+            <style>${css}</style>
           </head>
           <body>
-            ${(js  || []).map(f => `<script>${f.code}</script>`)}
+            ${(js || []).map(f => `<script>${f.code}</script>`)}
           </body>
         </html>
       `, {

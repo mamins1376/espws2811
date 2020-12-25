@@ -1,6 +1,7 @@
 from os import path
 from glob import iglob
 from gzip import compress
+from itertools import chain
 
 html_h_template = """\
 #include <sys/pgmspace.h>
@@ -43,24 +44,25 @@ def bin2hex(data):
 
 def build_index_html_c():
     name = "index.html"
+    html = f"web/dist/{name}"
     head = f"include/{name}.h"
     code = f"src/{name}.c"
-    html = "web/dist/{name}"
 
-    if all(map(make_change_checker(head, code), iglob("web/*"))):
+    check = chain(iglob("web/*"), iglob("web/src/*"))
+    if all(map(make_change_checker(head, code), check)):
         return
 
     print("Generating c code for web asset:", name, end="... ")
 
     if not path.isdir("web/node_modules"):
         call_web("npm", "install")
-    call_web("npm", "start")
+    call_web("npx", "rollup", "--config")
 
-    with open(html, encoding="utf8") as f:
+    with open(html, "rb") as f:
         html = f.read()
 
     html = compress(html)
-    print(len(html), "bytes (gzipped)")
+    print(len(html), "bytes (gzipped)", end="\n\n")
 
     vars = {
         "name": name,

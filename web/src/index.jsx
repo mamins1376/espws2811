@@ -1,3 +1,5 @@
+import "./style.scss";
+
 import { h, Component, render } from "preact";
 import * as logger from "./logger";
 
@@ -51,21 +53,13 @@ class App extends Component {
     logger.error("ws error: ", event);
   }
 
-  render(_props, { isOnline, leds }) {
-    logger.debug("render called:", a);
-    return <div>
+  render = (_props, { isOnline, leds }) =>
+    <div>
       <p>System is O{isOnline ? "n" : "ff"}line</p>
-      <div class="leds">
-        {leds.map(color => (
-          <LEDView color={color} />
-        ))}
-      </div>
+      <div className="leds">{
+        leds.map(c => <div style={"background:#"+c} />)
+      }</div>
     </div>;
-  }
 }
-
-const LEDView = ({ color }) => (
-  <span style={"background:"+color} />
-);
 
 render(<App />, document.body);

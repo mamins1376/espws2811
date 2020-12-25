@@ -14,6 +14,6 @@ indent_style = tab
 [Makefile]
 indent_style = tab
 
-[web/**.js{,x}]
+[web/**/*.{{,s}css,js{,x}}]
 indent_style = space
 indent_size = 2

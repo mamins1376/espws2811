@@ -1,0 +1,12 @@
+$led-size: 2rem;
+
+.leds > div {
+  display: inline-block;
+  width: $led-size;
+  height: $led-size;
+  border-radius: $led-size / 5;
+
+  &:not(:first-child) {
+    margin-left: 4px;
+  }
+}

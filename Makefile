@@ -18,4 +18,5 @@ update:
 	$(PIO) update
 
 nodemon:
-	nodemon -w web -e js,jsx,py -x python3 web/build.py
+	nodemon -w web/src -w web/rollup.config.js -w web/build.py \
+		-e js,jsx,scss,py -x python3 web/build.py
