@@ -1,30 +1,79 @@
-const { h, Component, render } = preact;
+const module = undefined;
+const self = {};
+"PREACT";
+const { h, Component, render } = self.preact;
 
-let domain = window.location.href;
-domain = domain.startsWith("file:") ? "http://192.168.1.9" : domain.match(/(^.*)\//)[1];
+const LOGLEVEL_DISABLED = -1;
+const LOGLEVEL_FATAL = 0;
+const LOGLEVEL_ERROR = 1;
+const LOGLEVEL_WARNING = 2;
+const LOGLEVEL_INFO = 3;
+const LOGLEVEL_DEBUG = 4;
+const LOGLEVEL = LOGLEVEL_DEBUG;
 
-Promise.prototype.drive = function() { this.catch(console.error.bind(console)) };
+function fatal(...a) {
+  if (LOGLEVEL >= LOGLEVEL_FATAL)
+    console.error("[FATAL]: ", ...a);
+}
+
+function error(...a) {
+  if (LOGLEVEL >= LOGLEVEL_ERROR)
+    console.error("[ERROR]: ", ...a);
+}
+
+function warning(...a) {
+  if (LOGLEVEL >= LOGLEVEL_ERROR)
+    console.warn("[WARNING]: ", ...a);
+}
+
+function info(...a) {
+  if (LOGLEVEL >= LOGLEVEL_INFO)
+  console.log("[INFO]:", ...a);
+}
+
+function debug(...a) {
+  if (LOGLEVEL >= LOGLEVEL_DEBUG)
+  console.log("[DEBUG]:", ...a);
+}
+
+Promise.prototype.drive = function() {
+  this.catch(error);
+};
 
 class App extends Component {
   state = {
-    numLeds: null
+    is_online: false
   };
 
   componentDidMount() {
-    this.checkEsp().drive();
+    let url = location.href.substr(7);
+    if (url[0] == "/")
+      url = "192.168.1.9"
+    url += "/ws"
+    url = url.replace("//", "/")
+    const ws = this.ws = new WebSocket("ws://"+url);
+    ws.onopen = (...a) => this.wsOnOpen(...a).drive();
+    ws.onmessage = (...a) => this.wsOnMessage(...a).drive();
   }
 
-  async checkEsp() {
-    const res = await fetch(`${domain}/ws2811`);
-    const text = await res.text();
-    const numLeds = parseInt(text);
-    if (!isNaN(numLeds))
-      this.setState({ numLeds });
+  async wsOnOpen() {
+    info("ws connected");
+  }
+
+  async wsOnClose() {
+    info("ws closed");
+  }
+
+  async wsOnMessage() {
+    info("ws message");
+  }
+
+  async wsOnError() {
+    error("ws error: ");
   }
 
   render() {
-    const is_online = this.state.numLeds !== null;
-    return <p>System is {is_online ? "Online" : "Offline"}</p>;
+    return <p>System is {this.state.is_online ? "Online" : "Offline"}</p>;
   }
 }
 

@@ -39,6 +39,22 @@ def read(f):
         content = f.read()
     return content[:-1] if content and content[-1] == "\n" else content
 
+def minify(string):
+    try:
+        import htmlmin
+    except ImportError:
+        cmd = "$PYTHONEXE -m pip install htmlmin"
+        imp = globals().get("Import")
+        if imp:
+            imp("env")
+            env.Execute(cmd)
+        else:
+            import sys
+            call_web(*cmd.replace("$PYTHONEXE", sys.executable).split(" "))
+    import htmlmin
+    opts = "remove_comments", "remove_all_empty_space"
+    return htmlmin.minify(string, **{opt: True for opt in opts})
+
 def bin2hex(data):
     w = 13
     i, j, l = 0, w, len(data)
@@ -68,7 +84,7 @@ def build_index_html_c():
     html = read(html)
     html = html.replace("%%STYLE%%", read(css))
     html = html.replace("%%SCRIPT%%", read(js))
-    html = html.encode("utf8")
+    html = minify(html).encode("utf8")
 
     with open("app.html", "wb") as f:
         f.write(html)

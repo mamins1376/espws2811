@@ -12,9 +12,9 @@ const transformed = transformSync(app, {
     ["@babel/plugin-transform-react-jsx", { pragma: "h", pragmaFrag: "Fragment" }]
   ]
 });
-
-minify(preact + transformed.code, {
+minify(transformed.code.replace('"PREACT";', preact), {
   compress: {
+    passes: 3,
     unsafe: true,
     unsafe_arrows: true,
     unsafe_methods: true,
@@ -23,6 +23,9 @@ minify(preact + transformed.code, {
   mangle: {
     toplevel: true,
     properties: true
+  },
+  format: {
+    semicolons: false
   },
   ecma: 2015,
   toplevel: true
