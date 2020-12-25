@@ -1,7 +1,7 @@
 const { h, Component, render } = preact;
 
 let domain = window.location.href;
-domain = domain.startsWith("file://") ? "http://192.168.1.9" : domain.match(/^.*\//);
+domain = domain.startsWith("file:") ? "http://192.168.1.9" : domain.match(/(^.*)\//)[1];
 
 Promise.prototype.drive = function() { this.catch(console.error.bind(console)) };
 
