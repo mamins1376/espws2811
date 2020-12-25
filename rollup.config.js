@@ -10,7 +10,7 @@ import scss from "rollup-plugin-scss";
 var css;
 
 export default {
-  input: "src/index.jsx",
+  input: "web/index.jsx",
   output: {
     file: "dist/bundle.js",
     format: "iife"

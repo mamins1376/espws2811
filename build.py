@@ -27,10 +27,10 @@ def make_change_checker(*ps):
             return path.getmtime(p) > mtime
     return f
 
-def call_web(*args):
+def call_exec(*args):
     import subprocess
     try:
-        subprocess.check_call(args, cwd="web")
+        subprocess.check_call(args)
     except subprocess.CalledProcessError as e:
         import sys
         sys.exit(e.returncode)
@@ -44,19 +44,19 @@ def bin2hex(data):
 
 def build_index_html_c():
     name = "index.html"
-    html = f"web/dist/{name}"
+    html = f"dist/{name}"
     head = f"include/{name}.h"
     code = f"src/{name}.c"
 
-    check = chain(iglob("web/*"), iglob("web/src/*"))
+    check = chain(iglob("web/*"), iter(("build.py", "rollup.config.js")))
     if all(map(make_change_checker(head, code), check)):
         return
 
     print("Generating c code for web asset:", name, end="... ")
 
-    if not path.isdir("web/node_modules"):
-        call_web("npm", "install")
-    call_web("npx", "rollup", "--config")
+    if not path.isdir("node_modules"):
+        call_exec("npm", "install", "--production")
+    call_exec("npx", "rollup", "--config")
 
     with open(html, "rb") as f:
         html = f.read()
