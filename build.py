@@ -1,7 +1,4 @@
 from os import path
-from glob import iglob
-from gzip import compress
-from itertools import chain
 
 html_h_template = """\
 #include <sys/pgmspace.h>
@@ -62,6 +59,7 @@ def build_index_html_c():
         html = f.read()
     print(len(html), end=" -> ")
 
+    from gzip import compress
     html = compress(html)
     print(len(html), "bytes (gzipped)", end="\n\n")
 

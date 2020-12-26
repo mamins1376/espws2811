@@ -17,8 +17,3 @@ monitor:
 update:
 	$(PIO) update
 
-embed:
-	node_modules/.bin/nodemon -w dist/embed.html -x python3 build.py
-
-serve:
-	python -m http.server -d dist -b ::1 3000

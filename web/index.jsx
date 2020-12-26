@@ -1,55 +1,91 @@
 import "./style.scss";
 
 import { h, render } from "preact";
-import { useState, useRef } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import { HexColorPicker } from "react-colorful";
 import * as logger from "./logger";
 
-var socket;
-(() => {
+const MESSAGE_SERVER_HELLO = "H".charCodeAt(0);
+
+const MESSAGE_CLIENT_SET   = "S".charCodeAt(0);
+
+const main = () => {
+  logger.debug("starting render");
+  render(<App socket={getSocket()} />, document.body);
+  logger.debug("initial render done");
+};
+
+const getSocket = () => {
   let url = location.href.substr(7);
-  if (url[0] == "/" || url.startsWith("[::1]")) url = "192.168.1.9";
-  socket = new WebSocket("ws://" + (url + "/ws").replace("//","/"));
+  if (url[0] == "/" || url.startsWith("localhost")) url = "192.168.1.9";
+  url = "ws://" + (url + "/ws").replace("//","/");
+  logger.debug("creating socket to", url);
 
-  socket.onopen = e => logger.debug("WS opened:", e);
-  socket.onclose = e => logger.debug("WS closed:", e);
-  socket.onerror = e => logger.error("WS errored:", e);
-});
+  const socket = new WebSocket(url);
+  socket.binaryType = "arraybuffer";
+  socket.addEventListener("open", e => logger.debug("WS opened:", e));
+  socket.addEventListener("message", e => logger.debug("WS message:", e));
+  socket.addEventListener("error", e => logger.error("WS errored:", e));
+  socket.addEventListener("close", e => logger.debug("WS closed:", e));
 
-render(<App />, document.body);
+  return socket;
+};
 
-function App() {
+const App = ({ socket }) => {
   const [isOnline, setOnline] = useState(false);
-  const [selectedColor, selectColor] = useState("#000000");
-  const LEDs = useRef([]);
+  const [selectedLED, selectLED] = useState(0);
+  const [LEDColors, setLEDColors] = useState([]);
 
-  const MESSAGE_TYPE_INIT = "I";
+  useEffect(() => {
+    logger.debug("registering message handler");
 
-  socket.onmessage = ({ data }) => {
-    logger.info("ws message", data);
-    if (!data)
-      return;
-    const payload = data.substr(1);
-    switch (data[0]) {
-      case MESSAGE_TYPE_INIT:
-        const numLeds = parseInt(payload);
-        if (!isNaN(numLeds)) {
-          setOnline(true);
-          LEDs.current = new Array(numLeds).fill("#000000");
-        }
-        break;
-    }
-  }
+    const handleMsg = ({ data }) => {
+      data = new Uint8Array(data);
+      logger.debug("got data:", data);
+      if (data[0] === MESSAGE_SERVER_HELLO) {
+        logger.debug("SERVER: hello");
+        setOnline(true);
+        setLEDColors(new Array(data[1]).fill(undefined));
+      } else {
+        logger.warning("unhandled message:", data);
+      }
+    };
+
+    socket.addEventListener("message", handleMsg);
+    return () => socket.removeEventListener("message", handleMsg);
+  }, [setOnline, setLEDColors, socket]);
+
+  const setLEDColor = color => {
+    logger.debug("set led color:", color);
+
+    const ledColors = LEDColors.slice();
+    ledColors[selectedLED] = color;
+    setLEDColors(ledColors);
+
+    const data = new Uint8Array(5);
+    color = parseInt(color.slice(1), 16);
+    data[0] = MESSAGE_CLIENT_SET;
+    data[1] = selectedLED;
+    data[2] = (color >>  0) & 0xFF;
+    data[3] = (color >>  8) & 0xFF;
+    data[4] = (color >> 16) & 0xFF;
+    socket.send(data.buffer);
+  };
 
   logger.debug("rendering app");
 
   return (
     <div>
       <p>System is O{isOnline ? "n" : "ff"}line</p>
-      <div className="leds">{
-        LEDs.current.map(c => <div style={{ backgroundColor: c }} />)
-      }</div>
-      <HexColorPicker color={selectedColor} onChange={selectColor} />
+      <div className="leds">
+        { LEDColors.map((c, i) => (
+          <button onClick={() => selectLED(i)} style={{ backgroundColor: c ?? "black" }}
+            className={ i === selectedLED ? "active" : "" } />
+        )) }
+      </div>
+      <HexColorPicker color={LEDColors[selectedLED]} onChange={setLEDColor} />
     </div>
   );
-}
+};
+
+main();

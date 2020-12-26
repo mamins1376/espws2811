@@ -2,13 +2,32 @@
 
 $led-size: 2rem;
 
-.leds > div {
-  display: inline-block;
-  width: $led-size;
-  height: $led-size;
-  border-radius: $led-size / 5;
+%bottom-space {
+  padding-bottom: 0.8rem;
+}
 
-  &:not(:first-child) {
-    margin-left: 4px;
+html, body {
+  color: #ccc;
+  background-color: #222;
+  margin: 1rem;
+  padding: 0;
+}
+
+div.leds {
+  @extend %bottom-space;
+
+  > button {
+    width: $led-size;
+    height: $led-size;
+    border-radius: $led-size / 5;
+    border: 2px solid #555;
+
+    &:not(:first-child) {
+      margin-left: 4px;
+    }
+
+    &.active {
+      border-color: #999;
+    }
   }
 }
