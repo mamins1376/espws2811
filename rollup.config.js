@@ -37,7 +37,6 @@ export default {
       { find: "react", replacement: "preact/compat" },
       { find: "react-dom", replacement: "preact/compat" }
     ]}),
-    sourcemaps(),
     nodeResolve({
       extensions: [".js", ".jsx", ".scss"]
     }),
@@ -52,7 +51,8 @@ export default {
       jsxPragma: "h",
       jsxFragmentPragma: "Fragment"
     }),
-    terser({ ecma: 2015 }),
+    terser({ compress: { passes: 3 }, ecma: 2015 }),
+    sourcemaps(),
     html({
       template: ({ files: { js } }) =>
         template(js.map(({ fileName: n }) => `<script src="${n}"></script>`).join(""))

@@ -10,6 +10,7 @@ $(PIO_TARGETS)::
 clean::
 	rm include/*.html.h
 	rm src/*.html.h
+	rm -r dist
 
 monitor:
 	$(PIO) device monitor -b 74880

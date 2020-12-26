@@ -1,7 +1,7 @@
 import "./style.scss";
 
 import { h, render } from "preact";
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useRef, useCallback } from "preact/hooks";
 import { HexColorPicker } from "react-colorful";
 import * as logger from "./logger";
 
@@ -11,30 +11,16 @@ const MESSAGE_CLIENT_SET   = "S".charCodeAt(0);
 
 const main = () => {
   logger.debug("starting render");
-  render(<App socket={getSocket()} />, document.body);
+  render(<App />, document.body);
   logger.debug("initial render done");
 };
 
-const getSocket = () => {
-  let url = location.href.substr(7);
-  if (url[0] == "/" || url.startsWith("localhost")) url = "192.168.1.9";
-  url = "ws://" + (url + "/ws").replace("//","/");
-  logger.debug("creating socket to", url);
-
-  const socket = new WebSocket(url);
-  socket.binaryType = "arraybuffer";
-  socket.addEventListener("open", e => logger.debug("WS opened:", e));
-  socket.addEventListener("message", e => logger.debug("WS message:", e));
-  socket.addEventListener("error", e => logger.error("WS errored:", e));
-  socket.addEventListener("close", e => logger.debug("WS closed:", e));
-
-  return socket;
-};
-
-const App = ({ socket }) => {
+const App = () => {
   const [isOnline, setOnline] = useState(false);
   const [selectedLED, selectLED] = useState(0);
   const [LEDColors, setLEDColors] = useState([]);
+
+  const socket = useSocket();
 
   useEffect(() => {
     logger.debug("registering message handler");
@@ -43,7 +29,7 @@ const App = ({ socket }) => {
       data = new Uint8Array(data);
       logger.debug("got data:", data);
       if (data[0] === MESSAGE_SERVER_HELLO) {
-        logger.debug("SERVER: hello");
+        logger.debug(`SERVER: hello (${data[1]})`);
         setOnline(true);
         setLEDColors(new Array(data[1]).fill(undefined));
       } else {
@@ -51,11 +37,11 @@ const App = ({ socket }) => {
       }
     };
 
-    socket.addEventListener("message", handleMsg);
-    return () => socket.removeEventListener("message", handleMsg);
+    socket.current.addEventListener("message", handleMsg);
+    return () => socket.current.removeEventListener("message", handleMsg);
   }, [setOnline, setLEDColors, socket]);
 
-  const setLEDColor = color => {
+  const setLEDColor = useCallback(color => {
     logger.debug("set led color:", color);
 
     const ledColors = LEDColors.slice();
@@ -69,8 +55,8 @@ const App = ({ socket }) => {
     data[2] = (color >>  0) & 0xFF;
     data[3] = (color >>  8) & 0xFF;
     data[4] = (color >> 16) & 0xFF;
-    socket.send(data.buffer);
-  };
+    socket.current.send(data.buffer);
+  }, [selectedLED, LEDColors, socket]);
 
   logger.debug("rendering app");
 
@@ -86,6 +72,50 @@ const App = ({ socket }) => {
       <HexColorPicker color={LEDColors[selectedLED]} onChange={setLEDColor} />
     </div>
   );
+};
+
+const useSocket = () => {
+  const socket = useRef(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+
+  useEffect(() => {
+    if (socket.current)
+      return logger.debug("socket already exists");
+
+    let url = location.href.substr(7);
+    if (url[0] == "/" || url.startsWith("localhost")) url = "192.168.1.9";
+    url = "ws://" + (url + "/ws").replace("//","/");
+
+    logger.debug("creating socket to", url);
+    const ws = new WebSocket(url);
+    ws.binaryType = "arraybuffer";
+
+    const register = ws.addEventListener.bind(ws);
+    register("open", e => {
+      logger.debug("WS opened:", e);
+      setFailedAttempts(0);
+    });
+
+    const reconnect = e => {
+      socket.current = null;
+      logger.warning("WS failed:", e.type);
+      if (failedAttempts > 9) {
+        logger.error("giving up on reconnect attempts");
+      } else {
+        const delay = (1 << failedAttempts) * 125;
+        logger.info(`attempt #${failedAttempts + 1} to reconnect in`, delay / 1000, "seconds");
+        setTimeout(() => setFailedAttempts(failedAttempts + 1), delay);
+      }
+    };
+    register("error", reconnect);
+    register("close", reconnect);
+
+    register("message", e => logger.debug("WS message:", e));
+    socket.current = ws;
+  }, [failedAttempts]);
+
+  logger.debug("use socket:", socket.current);
+  return socket;
 };
 
 main();
