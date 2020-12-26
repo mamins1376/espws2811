@@ -38,12 +38,12 @@ export default {
       { find: "react-dom", replacement: "preact/compat" }
     ]}),
     sourcemaps(),
+    nodeResolve({
+      extensions: [".js", ".jsx", ".scss"]
+    }),
     scss({
       outputStyle: "compressed",
       output: c => { css = c.slice(0, c.length - (c[-1]==="\n")) }
-    }),
-    nodeResolve({
-      extensions: [".js", ".jsx", ".scss"]
     }),
     sucrase({
       exclude: ["node_modules/**"],
@@ -52,24 +52,7 @@ export default {
       jsxPragma: "h",
       jsxFragmentPragma: "Fragment"
     }),
-    terser({
-      compress: {
-        passes: 3,
-        unsafe: true,
-        unsafe_arrows: true,
-        unsafe_methods: true,
-        unsafe_proto: true
-      },
-      mangle: {
-        toplevel: true,
-        properties: true
-      },
-      format: {
-        semicolons: false
-      },
-      ecma: 2015,
-      toplevel: true
-    }),
+    terser({ ecma: 2015 }),
     html({
       template: ({ files: { js } }) =>
         template(js.map(({ fileName: n }) => `<script src="${n}"></script>`).join(""))

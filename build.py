@@ -56,10 +56,11 @@ def build_index_html_c():
     if all(map(make_change_checker(head, code), (html, "build.py"))):
         return
 
-    print("Generating c code for web asset:", name, end="... ")
+    print("Generating c code", end="... ")
 
     with open(html, "rb") as f:
         html = f.read()
+    print(len(html), end=" -> ")
 
     html = compress(html)
     print(len(html), "bytes (gzipped)", end="\n\n")

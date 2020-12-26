@@ -1,40 +1,31 @@
 import "./style.scss";
 
-import { h, Component, render } from "preact";
+import { h, render } from "preact";
+import { useState, useRef } from "preact/hooks";
 import { HexColorPicker } from "react-colorful";
 import * as logger from "./logger";
 
-const MESSAGE_TYPE_INIT = "I";
+var socket;
+(() => {
+  let url = location.href.substr(7);
+  if (url[0] == "/" || url.startsWith("[::1]")) url = "192.168.1.9";
+  socket = new WebSocket("ws://" + (url + "/ws").replace("//","/"));
 
-class App extends Component {
-  state = {
-    isOnline: false,
-    leds: [],
-    selectedColor: null
-  };
+  socket.onopen = e => logger.debug("WS opened:", e);
+  socket.onclose = e => logger.debug("WS closed:", e);
+  socket.onerror = e => logger.error("WS errored:", e);
+});
 
-  componentDidMount() {
-    let url = location.href.substr(7);
-    if (url[0] == "/" || url.startsWith("[::1]"))
-      url = "192.168.1.9"
-    url += "/ws"
-    url = url.replace("//", "/")
-    const ws = this.ws = new WebSocket("ws://"+url);
-    ws.onopen = (...a) => this.wsOnOpen(...a).drive();
-    ws.onclose = (...a) => this.wsOnClose(...a).drive();
-    ws.onmessage = (...a) => this.wsOnMessage(...a).drive();
-    ws.onerror = (...a) => this.wsOnError(...a).drive();
-  }
+render(<App />, document.body);
 
-  async wsOnOpen(event) {
-    logger.info("ws connected:", event);
-  }
+function App() {
+  const [isOnline, setOnline] = useState(false);
+  const [selectedColor, selectColor] = useState("#000000");
+  const LEDs = useRef([]);
 
-  async wsOnClose(event) {
-    logger.info("ws closed", event);
-  }
+  const MESSAGE_TYPE_INIT = "I";
 
-  async wsOnMessage({ data }) {
+  socket.onmessage = ({ data }) => {
     logger.info("ws message", data);
     if (!data)
       return;
@@ -42,32 +33,23 @@ class App extends Component {
     switch (data[0]) {
       case MESSAGE_TYPE_INIT:
         const numLeds = parseInt(payload);
-        if (!isNaN(numLeds))
-          this.setState({
-            leds: new Array(numLeds).fill("000000"),
-            isOnline: true
-          });
+        if (!isNaN(numLeds)) {
+          setOnline(true);
+          LEDs.current = new Array(numLeds).fill("#000000");
+        }
         break;
     }
   }
 
-  async wsOnError(event) {
-    logger.error("ws error: ", event);
-  }
+  logger.debug("rendering app");
 
-  selectColor(event) {
-    console.log(event);
-    this.setState({ selectedColor: "444" });
-  }
-
-  render = (_props, { isOnline, leds, selectedColor }) =>
+  return (
     <div>
       <p>System is O{isOnline ? "n" : "ff"}line</p>
       <div className="leds">{
-        leds.map(c => <div style={"background:#"+c} />)
+        LEDs.current.map(c => <div style={{ backgroundColor: c }} />)
       }</div>
-      <HexColorPicker color={selectedColor} onChange={this.selectColor} />
-    </div>;
+      <HexColorPicker color={selectedColor} onChange={selectColor} />
+    </div>
+  );
 }
-
-render(<App />, document.body);

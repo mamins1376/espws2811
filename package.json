@@ -9,7 +9,6 @@
     "@rollup/plugin-sucrase": "^3.1.0",
     "html-minifier": "^4.0.0",
     "preact": "^10.5.7",
-    "preact-compat": "^3.19.0",
     "react-colorful": "^4.4.4",
     "rollup": "^2.35.1",
     "rollup-plugin-scss": "^2.6.1",
@@ -18,5 +17,8 @@
   },
   "scripts": {
     "start": "rollup --config --watch"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6"
   }
 }
