@@ -32,8 +32,15 @@ static void handleMessage(AsyncWebSocketClient *client, uint8_t *data, size_t le
 		// this is for when a client gets connected;
 		Serial.printf("ws[%u] connected\n", client->id());
 
-		uint8_t buf[2] = { MESSAGE_SERVER_HELLO, WS2811_NUM_LED };
-		client->binary(buf, 2);
+		const size_t buflen = 1 + 1 + WS2811_NUM_LED * 3;
+		uint8_t buf[buflen] = { MESSAGE_SERVER_HELLO, WS2811_NUM_LED };
+		const uint32_t *colors = ws2811_get_colors();
+		for (size_t i = 2; i < buflen; colors++) {
+			buf[i++] = (*colors >>  0) & 0xFF;
+			buf[i++] = (*colors >>  8) & 0xFF;
+			buf[i++] = (*colors >> 16) & 0xFF;
+		}
+		client->binary(buf, buflen);
 	}
 
 	return;

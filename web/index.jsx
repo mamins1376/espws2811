@@ -5,9 +5,10 @@ import { useState, useEffect, useRef, useCallback } from "preact/hooks";
 import { HexColorPicker } from "react-colorful";
 import * as logger from "./logger";
 
-const MESSAGE_SERVER_HELLO = "H".charCodeAt(0);
+const MESSAGE_SERVER_HELLO   = "H".charCodeAt(0);
+const MESSAGE_SERVER_INVALID = "!".charCodeAt(0);
 
-const MESSAGE_CLIENT_SET   = "S".charCodeAt(0);
+const MESSAGE_CLIENT_SET = "S".charCodeAt(0);
 
 const main = () => {
   logger.debug("starting render");
@@ -29,9 +30,19 @@ const App = () => {
       data = new Uint8Array(data);
       logger.debug("got data:", data);
       if (data[0] === MESSAGE_SERVER_HELLO) {
-        logger.debug(`SERVER: hello (${data[1]})`);
+        const len = data[1];
+        logger.debug(`SERVER: hello (${len})`);
+        // validate frame
+        if (len * 3 != data.length - 2)
+          return logger.warning("invalid hello frame!");
+        const colors = new Array(len);
+        for (let i = 0; i < len;)
+          colors[i] = "#" + Array.prototype.slice.call(data, 2+3*i, 2+3*(++i))
+            .map(b => (b<16?"0":"")+b.toString(16)).reverse().join("");
+        logger.debug("colors received:", colors);
         setOnline(true);
-        setLEDColors(new Array(data[1]).fill(undefined));
+        setLEDColors(colors);
+      } else if (data[0] === MESSAGE_SERVER_INVALID) {
       } else {
         logger.warning("unhandled message:", data);
       }
@@ -96,7 +107,7 @@ const useSocket = () => {
       setFailedAttempts(0);
     });
 
-    const reconnect = e => {
+    register("close", e => {
       socket.current = null;
       logger.warning("WS failed:", e.type);
       if (failedAttempts > 9) {
@@ -106,11 +117,10 @@ const useSocket = () => {
         logger.info(`attempt #${failedAttempts + 1} to reconnect in`, delay / 1000, "seconds");
         setTimeout(() => setFailedAttempts(failedAttempts + 1), delay);
       }
-    };
-    register("error", reconnect);
-    register("close", reconnect);
+    });
 
     register("message", e => logger.debug("WS message:", e));
+    register("error", e => logger.warning("WS error:", e));
     socket.current = ws;
   }, [failedAttempts]);
 

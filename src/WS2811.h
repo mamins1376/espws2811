@@ -52,6 +52,10 @@ static void ws2811_flush(void)
 	_farthest_updated = 0;
 }
 
+static uint32_t *ws2811_get_colors(void) {
+	return _ws2811_colorbuf;
+}
+
 static void ws2811_init(void)
 {
 	ws2811_clear();
