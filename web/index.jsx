@@ -10,16 +10,12 @@ const MESSAGE_SERVER_INVALID = "!".charCodeAt(0);
 
 const MESSAGE_CLIENT_SET = "S".charCodeAt(0);
 
-const main = () => {
-  logger.debug("starting render");
-  render(<App />, document.body);
-  logger.debug("initial render done");
-};
+render(<App />, document.body);
 
-const App = () => {
+function App() {
   const [isOnline, setOnline] = useState(false);
-  const [selectedLED, selectLED] = useState(0);
   const [LEDColors, setLEDColors] = useState([]);
+  const [selectedLED, setSelectedLED] = useState(0);
 
   const socket = useSocket();
 
@@ -76,16 +72,16 @@ const App = () => {
       <p>System is O{isOnline ? "n" : "ff"}line</p>
       <div className="leds">
         { LEDColors.map((c, i) => (
-          <button onClick={() => selectLED(i)} style={{ backgroundColor: c ?? "black" }}
+          <button onClick={() => setSelectedLED(i)} style={{ backgroundColor: c }}
             className={ i === selectedLED ? "active" : "" } />
         )) }
       </div>
       <HexColorPicker color={LEDColors[selectedLED]} onChange={setLEDColor} />
     </div>
   );
-};
+}
 
-const useSocket = () => {
+function useSocket() {
   const socket = useRef(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
 
@@ -126,6 +122,4 @@ const useSocket = () => {
 
   logger.debug("use socket:", socket.current);
   return socket;
-};
-
-main();
+}

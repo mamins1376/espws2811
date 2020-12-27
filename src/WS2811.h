@@ -64,7 +64,7 @@ static void ws2811_init(void)
 	Serial.printf("sys freq: %uMHz\n", system_get_cpu_freq());
 
 	_ws2811_uart = uart_init(UART1, 3200000, UART_6N1, UART_TX_ONLY, 0, 0, true);
-	USC0(UART1) = USC0(UART1) | BIT(UCTXI);
+	USC0(UART1) |= BIT(UCTXI);
 	os_delay_us(60);
 	ws2811_flush();
 }
