@@ -111,10 +111,10 @@ void setup(void)
 
 	Serial.println("initializing ws2811");
 
+	ws2811_init();
+
 	AsyncWiFiManager manager(&http, &dns);
 	while (!manager.autoConnect());
-
-	ws2811_init();
 
 	http.on("/", HTTP_GET, [](AsyncWebServerRequest *req) {
 		AsyncWebServerResponse *res = req->beginResponse_P(200, "text/html",
