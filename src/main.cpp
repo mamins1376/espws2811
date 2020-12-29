@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <ESPAsyncWiFiManager.h>
 #include <ESPAsyncWebServer.h>
-#include "WS2811.h"
+#include "ws2811.h"
 #include "index.html.h"
 
 DNSServer dns;
