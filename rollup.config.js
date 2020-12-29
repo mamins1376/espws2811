@@ -3,9 +3,9 @@ import alias from "@rollup/plugin-alias";
 import sourcemaps from "rollup-plugin-sourcemaps";
 import scss from "rollup-plugin-scss";
 import sucrase from "@rollup/plugin-sucrase";
-import { minify as terser } from "terser";
 import html from "@rollup/plugin-html";
 import { minify } from "html-minifier";
+import { minify as terser } from "terser";
 
 const terserOptions = {
   compress: {
@@ -65,8 +65,10 @@ export default {
     }),
     html({
       fileName: "embed.html",
-      template: ({ files: { js } }) => minify(
-        template(js.map(({ code }) => `<script>${terser(code, terserOptions)}</script>`).join("")),
+      template: async ({ files: { js } }) => minify(
+        template((await Promise.all(js.map(async ({ code }) => `<script>${
+          (await terser(code, terserOptions)).code
+        }</script>`))).join("")),
         { collapseWhitespace: true, removeComments: true }
       )
     })
