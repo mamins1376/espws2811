@@ -1,7 +1,7 @@
 import "./style.scss";
 
 import { h, render } from "preact";
-import { useState, useEffect, useRef, useCallback } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import { HexColorPicker } from "react-colorful";
 import * as logger from "./logger";
 
@@ -13,59 +13,45 @@ const MESSAGE_CLIENT_SET = "S".charCodeAt(0);
 render(<App />, document.body);
 
 function App() {
-  const [isOnline, setOnline] = useState(false);
+  logger.debug("App called");
+
+  const socket = useSocket();
+  const [isOnline, setIsOnline] = useState(false);
   const [LEDColors, setLEDColors] = useState([]);
   const [selectedLED, setSelectedLED] = useState(0);
 
-  const socket = useSocket();
+  useEffect(() => {
+    const events = ["open", "close"];
+    const updateIsOnline = ({ type }) => setIsOnline(type === events[0]);
+    events.forEach(e => socket.addEventListener(e, updateIsOnline));
+    return () => events.forEach(e => socket.removeEventListener(e, updateIsOnline));
+  }, [socket]);
 
   useEffect(() => {
-    logger.debug("registering message handler");
-
-    const handleMsg = ({ data }) => {
+    function onMessage({ data }) {
       data = new Uint8Array(data);
       logger.debug("got data:", data);
-      if (data[0] === MESSAGE_SERVER_HELLO) {
-        const len = data[1];
-        logger.debug(`SERVER: hello (${len})`);
-        // validate frame
-        if (len * 3 != data.length - 2)
-          return logger.warning("invalid hello frame!");
-        const colors = new Array(len);
-        for (let i = 0; i < len;)
-          colors[i] = "#" + Array.prototype.slice.call(data, 2+3*i, 2+3*(++i))
-            .map(b => (b<16?"0":"")+b.toString(16)).reverse().join("");
-        logger.debug("colors received:", colors);
-        setOnline(true);
-        setLEDColors(colors);
-      } else if (data[0] === MESSAGE_SERVER_INVALID) {
-      } else {
+      if (data[0] === MESSAGE_SERVER_HELLO)
+        setLEDColors(decodeLEDColors(data.slice(1)));
+      else if (data[0] === MESSAGE_SERVER_INVALID)
+        logger.info("server said we send an invalid message");
+      else
         logger.warning("unhandled message:", data);
-      }
-    };
+    }
 
-    socket.current.addEventListener("message", handleMsg);
-    return () => socket.current.removeEventListener("message", handleMsg);
-  }, [setOnline, setLEDColors, socket]);
+    const event = "message";
+    socket.addEventListener(event, onMessage);
+    return () => socket.removeEventListener(event, onMessage);
+  }, [socket]);
 
-  const setLEDColor = useCallback(color => {
-    logger.debug("set led color:", color);
+  function modifyLEDColor(color) {
+    logger.debug("modify led color:", color);
 
     const ledColors = LEDColors.slice();
     ledColors[selectedLED] = color;
     setLEDColors(ledColors);
-
-    const data = new Uint8Array(5);
-    color = parseInt(color.slice(1), 16);
-    data[0] = MESSAGE_CLIENT_SET;
-    data[1] = selectedLED;
-    data[2] = (color >>  0) & 0xFF;
-    data[3] = (color >>  8) & 0xFF;
-    data[4] = (color >> 16) & 0xFF;
-    socket.current.send(data.buffer);
-  }, [selectedLED, LEDColors, socket]);
-
-  logger.debug("rendering app");
+    socket.send(encodeLEDColor(selectedLED, color));
+  }
 
   return (
     <div>
@@ -76,50 +62,65 @@ function App() {
             className={ i === selectedLED ? "active" : "" } />
         )) }
       </div>
-      <HexColorPicker color={LEDColors[selectedLED]} onChange={setLEDColor} />
+      <HexColorPicker color={LEDColors[selectedLED]} onChange={modifyLEDColor} />
     </div>
   );
 }
 
 function useSocket() {
-  const socket = useRef(null);
-  const [failedAttempts, setFailedAttempts] = useState(0);
+  const maxAttempts = 9;
+  const [attempts, setAttempts] = useState(0);
+  let [socket, setSocket] = useState(null);
 
-  useEffect(() => {
-    if (socket.current)
-      return logger.debug("socket already exists");
-
+  if (!socket) {
     let url = location.href.substr(7);
-    if (url[0] == "/" || url.startsWith("localhost")) url = "192.168.1.9";
+    if (url[0] == "/" || url.startsWith("localhost"))
+      url = "192.168.1.9";
     url = "ws://" + (url + "/ws").replace("//","/");
 
     logger.debug("creating socket to", url);
-    const ws = new WebSocket(url);
-    ws.binaryType = "arraybuffer";
+    socket = new WebSocket(url);
+    socket.binaryType = "arraybuffer";
 
-    const register = ws.addEventListener.bind(ws);
-    register("open", e => {
-      logger.debug("WS opened:", e);
-      setFailedAttempts(0);
-    });
-
-    register("close", e => {
-      socket.current = null;
-      logger.warning("WS failed:", e.type);
-      if (failedAttempts > 9) {
-        logger.error("giving up on reconnect attempts");
+    socket.addEventListener("open", () => setAttempts(0));
+    socket.addEventListener("close", () => {
+      if (attempts > maxAttempts) {
+        logger.warning("could not connect after multiple tries, giving up");
       } else {
-        const delay = (1 << failedAttempts) * 125;
-        logger.info(`attempt #${failedAttempts + 1} to reconnect in`, delay / 1000, "seconds");
-        setTimeout(() => setFailedAttempts(failedAttempts + 1), delay);
+        const delay = (1 << attempts) * 125;
+        logger.info(`connection closed, retrying after ${delay/1000} seconds`);
+        setTimeout(() => setSocket(null), delay);
       }
+      setAttempts(attempts + 1);
     });
 
-    register("message", e => logger.debug("WS message:", e));
-    register("error", e => logger.warning("WS error:", e));
-    socket.current = ws;
-  }, [failedAttempts]);
+    setSocket(socket);
+  }
 
-  logger.debug("use socket:", socket.current);
   return socket;
+}
+
+function decodeLEDColors(data) {
+  const len = data[0];
+  data = data.slice(1);
+  logger.debug(`SERVER: hello (${len})`);
+  if (len * 3 != data.length)
+    return logger.warning("invalid hello frame!");
+  const colors = new Array(len);
+  for (let i = 0; i < len;)
+    colors[i] = "#" + Array.prototype.slice.call(data, 3*i, 3*(++i))
+      .map(b => (b<16?"0":"")+b.toString(16)).reverse().join("");
+  logger.debug("colors received:", colors);
+  return colors;
+}
+
+function encodeLEDColor(index, color) {
+  const data = new Uint8Array(5);
+  color = parseInt(color.slice(1), 16);
+  data[0] = MESSAGE_CLIENT_SET;
+  data[1] = index;
+  data[2] = (color >>  0) & 0xFF;
+  data[3] = (color >>  8) & 0xFF;
+  data[4] = (color >> 16) & 0xFF;
+  return data.buffer;
 }
