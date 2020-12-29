@@ -3,9 +3,16 @@ import alias from "@rollup/plugin-alias";
 import sourcemaps from "rollup-plugin-sourcemaps";
 import scss from "rollup-plugin-scss";
 import sucrase from "@rollup/plugin-sucrase";
-import { terser } from "rollup-plugin-terser";
+import { minify as terser } from "terser";
 import html from "@rollup/plugin-html";
 import { minify } from "html-minifier";
+
+const terserOptions = {
+  compress: {
+    passes: 3
+  },
+  ecma: 2015
+};
 
 // hack to inject css to html
 // scss calls output which sets this
@@ -51,7 +58,6 @@ export default {
       jsxPragma: "h",
       jsxFragmentPragma: "Fragment"
     }),
-    terser({ compress: { passes: 3 }, ecma: 2015 }),
     sourcemaps(),
     html({
       template: ({ files: { js } }) =>
@@ -60,7 +66,7 @@ export default {
     html({
       fileName: "embed.html",
       template: ({ files: { js } }) => minify(
-        template(js.map(({ code }) => `<script>${code}</script>`).join("")),
+        template(js.map(({ code }) => `<script>${terser(code, terserOptions)}</script>`).join("")),
         { collapseWhitespace: true, removeComments: true }
       )
     })
