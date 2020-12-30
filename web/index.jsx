@@ -1,7 +1,7 @@
 import "./style.scss";
 
 import { h, render } from "preact";
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useMemo } from "preact/hooks";
 import { HexColorPicker } from "react-colorful";
 import * as logger from "./logger";
 
@@ -16,13 +16,14 @@ function App() {
   logger.debug("App called");
 
   const socket = useSocket();
-  const [isOnline, setIsOnline] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [LEDColors, setLEDColors] = useState([]);
   const [selectedLED, setSelectedLED] = useState(0);
 
   useEffect(() => {
+    logger.debug("registering socket status tracker");
     const events = ["open", "close"];
-    const updateIsOnline = ({ type }) => setIsOnline(type === events[0]);
+    const updateIsOnline = ({ type }) => setIsConnected(type === events[0]);
     events.forEach(e => socket.addEventListener(e, updateIsOnline));
     return () => events.forEach(e => socket.removeEventListener(e, updateIsOnline));
   }, [socket]);
@@ -31,9 +32,12 @@ function App() {
     function onMessage({ data }) {
       data = new Uint8Array(data);
       logger.debug("got data:", data);
-      if (data[0] === MESSAGE_SERVER_HELLO)
-        setLEDColors(decodeLEDColors(data.slice(1)));
-      else if (data[0] === MESSAGE_SERVER_INVALID)
+      const command = data[0];
+      data = data.slice(1);
+
+      if (command === MESSAGE_SERVER_HELLO)
+        setLEDColors(decodeLEDColors(data));
+      else if (command === MESSAGE_SERVER_INVALID)
         logger.info("server said we send an invalid message");
       else
         logger.warning("unhandled message:", data);
@@ -55,16 +59,42 @@ function App() {
 
   return (
     <div>
-      <p>System is O{isOnline ? "n" : "ff"}line</p>
-      <div className="leds">
-        { LEDColors.map((c, i) => (
-          <button onClick={() => setSelectedLED(i)} style={{ backgroundColor: c }}
-            className={ i === selectedLED ? "active" : "" } />
-        )) }
-      </div>
+      <StatusIndicator isConnected={isConnected} />
+      <LEDs colors={LEDColors} selectedLED={selectedLED} onSelect={setSelectedLED} />
       <HexColorPicker color={LEDColors[selectedLED]} onChange={modifyLEDColor} />
     </div>
   );
+}
+
+function StatusIndicator({ isConnected }) {
+  const [isHidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    if (isConnected != isHidden) {
+      if (isConnected) {
+        const handle = setTimeout(() => setHidden(true), 1000);
+        return () => clearTimeout(handle);
+      } else {
+        setHidden(false);
+      }
+    }
+  }, [isConnected]);
+
+  return (
+    <div className={ "connecting" + (isHidden ? " hidden" : "") }>
+      <span>Connect{ isConnected ? "ed." : "ing..." }</span>
+    </div>
+  );
+}
+
+function LEDs({ colors, onSelect, selectedLED }) {
+  return <div className="leds">{
+    colors.map((c, i) => <button
+      className={ i === selectedLED ? "active" : "" }
+      style={{ backgroundColor: c }}
+      onClick={() => onSelect(i)}
+    />)
+  }</div>;
 }
 
 function useSocket() {

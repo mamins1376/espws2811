@@ -13,6 +13,50 @@ html, body {
   padding: 0;
 }
 
+div.connecting {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 5;
+  background: linear-gradient(#0079, #000c, #3059);
+  transition: all 1s;
+
+  &.hidden {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  span {
+    position: relative;
+    padding-left: 1rem;
+
+    &::before {
+      $loading-size: 0.75rem;
+
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      width: $loading-size;
+      height: $loading-size;
+      top: calc(50% - #{$loading-size * 0.5});
+      left: 0;
+      background-color: snow;
+      animation: 1s linear 0s infinite await;
+
+      @keyframes await {
+        85% {
+          transform: scale(0);
+        }
+      }
+    }
+  }
+}
+
 div.leds {
   @extend %bottom-space;
 
