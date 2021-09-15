@@ -138,8 +138,8 @@ function decodeLEDColors(data) {
     return logger.warning("invalid hello frame!");
   const colors = new Array(len);
   for (let i = 0; i < len;)
-    colors[i] = "#" + Array.prototype.slice.call(data, 3*i, 3*(++i))
-      .map(b => (b<16?"0":"")+b.toString(16)).reverse().join("");
+    colors[i] = "#" + Array.prototype.slice.call(data, 3 * i, 3 * ++i)
+      .map(b => (b < 16 ? "0" : "") + b.toString(16)).reverse().join("");
   logger.debug("colors received:", colors);
   return colors;
 }
