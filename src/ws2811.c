@@ -14,7 +14,7 @@ static uint8_t farthest_updated;
 
 static void ws2811_set_raw(size_t idx, uint32_t rgb)
 {
-	const char table[] = { 55, 39, 54, 38 };
+	const char table[] = { 0x37, 0x27, 0x36, 0x26 };
 	char *const buf = ws2811_protobuf + 12 * idx;
 	for (char *seq = buf + 12; seq > buf; rgb >>= 2)
 		*(--seq) = table[rgb & 3];
